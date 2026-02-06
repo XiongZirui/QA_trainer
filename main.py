@@ -35,7 +35,7 @@ class AgentState(TypedDict):
 
 # 节点定义
 
-def 收集用户信息(state: AgentState) -> AgentState:
+def collect_userinfo(state: AgentState) -> AgentState:
     print("=== 收集用户信息 ===")
     state["user_name"] = input("请输入您的姓名: ")
     state["user_level"] = input("请输入您的级别: ")
@@ -43,13 +43,13 @@ def 收集用户信息(state: AgentState) -> AgentState:
     return state
 
 
-def 数据库检索(state: AgentState) -> AgentState:
+def db_search(state: AgentState) -> AgentState:
     print("=== 数据库检索 ===")
     state["DB_info"] = database.main(state["user_level"])
     return state
 
 
-def 生成问题(state: AgentState) -> AgentState:
+def generate_qns(state: AgentState) -> AgentState:
     print("=== 生成问题 ===")
 
     prompt = f"""
@@ -117,7 +117,7 @@ def 生成问题(state: AgentState) -> AgentState:
     return state
 
 
-def 输出问题(state: AgentState) -> AgentState:
+def output_qns(state: AgentState) -> AgentState:
     print("=== 输出问题 ===")
 
     for q in state["questions"]:
@@ -131,7 +131,7 @@ def 输出问题(state: AgentState) -> AgentState:
     return state
 
 
-def 回答问题(state: AgentState) -> AgentState:
+def answer_qns(state: AgentState) -> AgentState:
     if state["current_qn"]:
         print("=== 回答问题 ===")
         print(f"当前问题: {state['current_qn']}")
@@ -140,7 +140,7 @@ def 回答问题(state: AgentState) -> AgentState:
     return state
 
 
-def 批改答案(state: AgentState) -> AgentState:
+def check_answer(state: AgentState) -> AgentState:
     if not state["ans_status"]:
         return state
 
@@ -197,7 +197,7 @@ def 批改答案(state: AgentState) -> AgentState:
     return state
 
 
-def 更新问题列表(state: AgentState) -> AgentState:
+def update_qn_list(state: AgentState) -> AgentState:
     print("=== 更新问题列表 ===")
 
     for q in state["questions"]:
@@ -219,11 +219,11 @@ def 更新问题列表(state: AgentState) -> AgentState:
     return state
 
 
-def 决定下一步(state: AgentState) -> str:
+def exit_decision(state: AgentState) -> str:
     return "生成概览" if state["exit_status"] == "Yes" else "输出问题"
 
 
-def 生成概览(state: AgentState) -> AgentState:
+def generate_summary(state: AgentState) -> AgentState:
     print("=== 生成训练概览 ===")
 
     total = sum(q["score"] for q in state["questions"])
@@ -249,14 +249,14 @@ def 生成概览(state: AgentState) -> AgentState:
 # LangGraph 构建
 graph = StateGraph(AgentState)
 
-graph.add_node("收集用户信息", 收集用户信息)
-graph.add_node("数据库检索", 数据库检索)
-graph.add_node("生成问题", 生成问题)
-graph.add_node("输出问题", 输出问题)
-graph.add_node("回答问题", 回答问题)
-graph.add_node("批改答案", 批改答案)
-graph.add_node("更新问题列表", 更新问题列表)
-graph.add_node("生成概览", 生成概览)
+graph.add_node("收集用户信息", collect_userinfo)
+graph.add_node("数据库检索", db_search)
+graph.add_node("生成问题", generate_qns)
+graph.add_node("输出问题", output_qns)
+graph.add_node("回答问题", answer_qns)
+graph.add_node("批改答案", check_answer)
+graph.add_node("更新问题列表", update_qn_list)
+graph.add_node("生成概览", generate_summary)
 
 graph.set_entry_point("收集用户信息")
 
@@ -269,7 +269,7 @@ graph.add_edge("批改答案", "更新问题列表")
 
 graph.add_conditional_edges(
     "更新问题列表",
-    决定下一步,
+    exit_decision,
     {
         "输出问题": "输出问题",
         "生成概览": "生成概览"
